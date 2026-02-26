@@ -1,0 +1,9 @@
+# Core web API framework
+fastapi==0.115.6
+uvicorn==0.30.6
+
+# HTTP client for vLLM/MCP integrations
+httpx==0.27.2
+
+# Data validation / request-response schemas
+pydantic==2.10.3
