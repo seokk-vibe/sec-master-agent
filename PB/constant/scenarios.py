@@ -17,14 +17,14 @@ DEFAULT_SCENARIO_ID = 19
 
 
 def _scenario(
-    id: int,
+    scenario_id: int,
     name: str,
     route_key: str,
     description: Optional[str] = None,
     mcp_tool_name: Optional[str] = None,
 ) -> ScenarioSpec:
     return ScenarioSpec(
-        id=id,
+        id=scenario_id,
         name=name,
         route_key=route_key,
         description=description,
@@ -65,6 +65,8 @@ _SCENARIOS = [
     _scenario(18, "날씨 조회", "weather_lookup", "날씨 조회"),
     _scenario(19, "일반대화(FAQ) 및 Chiplist 대화", "general_chat", "FAQ/일반대화"),
 ]
+
+MAX_SCENARIO_ID: int = len(_SCENARIOS)
 
 SCENARIO_REGISTRY: Dict[int, ScenarioSpec] = {scenario.id: scenario for scenario in _SCENARIOS}
 

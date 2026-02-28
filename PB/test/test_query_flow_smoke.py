@@ -80,7 +80,6 @@ def test_query_endpoint_stub_flow_returns_stubbed_payload() -> None:
 
     assert data["classification"]["scenario_id"] == 19
     assert data["classification"]["route_key"] == "general_chat"
-    assert data["mcp"]["status"] == "stubbed"
     assert data["mcp"]["payload"]["status"] == "stubbed"
     assert data["mcp"]["payload"]["route_key"] == "general_chat"
 
@@ -145,17 +144,18 @@ def test_query_endpoint_scenario2_builds_unsettled_amount_mcp_request(monkeypatc
 
     assert data["classification"]["scenario_id"] == 2
     assert data["classification"]["route_key"] == "receivables"
-    assert data["mcp"]["status"] == "success"
+    assert data["mcp"]["payload"]["status"] == "success"
     assert data["mcp"]["payload"]["mcp_tool_name"] == "getUnsettledAmountTool"
-    assert data["mcp"]["payload"]["request_payload"]["params"]["name"] == "getUnsettledAmountTool"
-    assert set(data["mcp"]["payload"]["request_payload"]["params"]["arguments"].keys()) == {
+    # request_payload is excluded from API response for security (contains userInfo tokens)
+    assert "request_payload" not in data["mcp"]["payload"]
+
+    # Adapter + 공통 JSON-RPC envelope가 실제로 생성된 payload 확인
+    assert captured["json"]["params"]["name"] == "getUnsettledAmountTool"
+    assert set(captured["json"]["params"]["arguments"].keys()) == {
         "toolStepId",
         "sessionKey",
         "userInfo",
     }
-
-    # Adapter + 공통 JSON-RPC envelope가 실제로 생성된 payload 확인
-    assert captured["json"]["params"]["name"] == "getUnsettledAmountTool"
     assert captured["json"]["params"]["arguments"]["userInfo"]["udid"] == "TEST-UDID"
 
 
@@ -214,7 +214,7 @@ def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(mo
     assert response.status_code == 200
     data = response.json()
     assert data["classification"]["scenario_id"] == 19
-    assert data["mcp"]["status"] == "stubbed"
+    assert data["mcp"]["payload"]["status"] == "stubbed"
 
     # 사용자 선택 classifier.modelName 이 LLM 분류 요청 payload.model 로 반영되어야 한다.
     assert captured["url"] == "http://litellm.local/v1/chat/completions"

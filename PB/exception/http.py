@@ -211,7 +211,7 @@ class Forbidden(HTTPStatusException):
 class QueryLimitExceed(Forbidden):
     def __init__(self):
         super().__init__(
-            message="query daliy limit exceeded",
+            message="query daily limit exceeded",
             exception_code=ResponseCodeEnum.MESSAGE_LIMIT_EXCEED,
         )
 

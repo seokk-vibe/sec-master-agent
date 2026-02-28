@@ -6,8 +6,8 @@ from typing import Any, Dict, Optional, Tuple
 from pydantic import ValidationError
 
 from PB.constant.classification_prompt import build_master_agent_system_prompt
+from PB.constant.scenarios import MAX_SCENARIO_ID
 from PB.core.requester import post_json
-from PB.core.settings import load_settings
 from PB.dto.base import FrozenStrictModel
 from PB.dto.vllm_schemas import (
     VLLMChatCompletionRequestOut,
@@ -45,12 +45,12 @@ class MasterAgentClient:
     async def classify_intent(
         self,
         user_input: str,
-        retries: int = 2,
+        max_attempts: int = 3,
         model_name_override: Optional[str] = None,
     ) -> int:
         meta = await self.classify_intent_with_meta(
             user_input=user_input,
-            retries=retries,
+            max_attempts=max_attempts,
             model_name_override=model_name_override,
         )
         return meta.scenario_id
@@ -58,7 +58,7 @@ class MasterAgentClient:
     async def classify_intent_with_meta(
         self,
         user_input: str,
-        retries: int = 2,
+        max_attempts: int = 3,
         model_name_override: Optional[str] = None,
     ) -> IntentClassificationMeta:
         if not self.server_url:
@@ -69,9 +69,8 @@ class MasterAgentClient:
             )
 
         payload = self._build_payload(user_input, model_name_override=model_name_override)
-        attempt = 0
 
-        while attempt <= retries:
+        for attempt in range(max_attempts):
             try:
                 response = await post_json(
                     self.server_url,
@@ -87,8 +86,7 @@ class MasterAgentClient:
                     fallback_used=fallback_used,
                 )
             except Exception as exc:  # pragma: no cover - 네트워크 예외는 런타임 의존
-                attempt += 1
-                if attempt > retries:
+                if attempt >= max_attempts - 1:
                     return IntentClassificationMeta(
                         scenario_id=self.default_scenario_id,
                         fallback_used=True,
@@ -135,7 +133,7 @@ class MasterAgentClient:
                 digits = "".join(ch for ch in token if ch.isdigit())
                 if digits:
                     candidate = int(digits)
-                    if 1 <= candidate <= 19:
+                    if 1 <= candidate <= MAX_SCENARIO_ID:
                         return candidate, raw_content, False
 
             only_digits = "".join(ch for ch in raw_content if ch.isdigit())
@@ -148,16 +146,3 @@ class MasterAgentClient:
 
         return self.default_scenario_id, raw_content, True
 
-
-_settings = load_settings()
-_default_master_agent = MasterAgentClient(
-    server_url=_settings.litellm_server_url or _settings.vllm_server_url,
-    model_name=_settings.vllm_model_name,
-    timeout=_settings.vllm_timeout_seconds,
-    default_scenario_id=_settings.default_scenario_id,
-)
-
-
-async def get_tool_id(user_input: str) -> int:
-    """기존 테스트 코드 호환용."""
-    return await _default_master_agent.classify_intent(user_input)

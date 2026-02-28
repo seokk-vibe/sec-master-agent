@@ -4,8 +4,8 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
-from PB.dto.base import PopulateByNameModel
-from PB.dto.mcp_tool_schemas import MCPInvokeResultOut, MCPInvokeStatus
+from PB.dto.base import PopulateByNameModel, StrictPopulateByNameModel
+from PB.dto.mcp_tool_schemas import MCPInvokeResultOut
 
 
 class MCPUserInfoDTO(PopulateByNameModel):
@@ -49,7 +49,7 @@ class ClassifierLLMOptionsDTO(PopulateByNameModel):
     )
 
 
-class QueryRequestDTO(BaseModel):
+class QueryRequestDTO(StrictPopulateByNameModel):
     user_input: str = Field(..., min_length=1, max_length=4000, description="프론트에서 전달받는 사용자 질의문")
     user_id: Optional[str] = Field(default=None, description="선택값: 사용자 식별자")
     session_id: Optional[str] = Field(default=None, description="선택값: 세션 식별자")
@@ -72,9 +72,6 @@ class ClassificationResultDTO(BaseModel):
 
 
 class MCPInvocationResultDTO(BaseModel):
-    interface_ready: bool
-    route_key: str
-    status: MCPInvokeStatus
     payload: MCPInvokeResultOut
 
 

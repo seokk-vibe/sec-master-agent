@@ -19,14 +19,6 @@ from .http import (
     TRRequestFailedError,
     UnprocessableEntity,
 )
-from .module import (
-    ModuleServerStatusError,
-    NoRequiredFieldError,
-    # OutputGuardrailException,
-)
-from .mongo import MongoError, MongoInvalidObjectId
-from .oracle import OracleError
-from .postgre import PostgreError
 from .system import InvalidValue, JSONParseError, SystemKilledByAdmin
 
 __all__ = [
@@ -52,17 +44,6 @@ __all__ = [
     "Banned",
     "UnprocessableEntity",
     "RequestParamValidationError",
-    # module
-    "ModuleServerStatusError",
-    "NoRequiredFieldError",
-    # "OutputGuardrailException",
-    # mongo
-    "MongoError",
-    "MongoInvalidObjectId",
-    # oracle
-    "OracleError",
-    # postgre
-    "PostgreError",
     # system
     "InvalidValue",
     "JSONParseError",

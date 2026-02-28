@@ -32,14 +32,10 @@ class _CommonUserInfoToolAdapterBase:
         if not isinstance(mcp_ctx, dict):
             raise ValueError("context.mcp must be an object")
 
-        user_info = mcp_ctx.get("user_info")
-        if user_info is None:
-            user_info = mcp_ctx.get("userInfo")
-
         payload = {
-            "toolStepId": mcp_ctx.get("tool_step_id", mcp_ctx.get("toolStepId", "1")),
-            "sessionKey": mcp_ctx.get("session_key", mcp_ctx.get("sessionKey", "")) or "",
-            "userInfo": user_info,
+            "toolStepId": mcp_ctx.get("tool_step_id", "1"),
+            "sessionKey": mcp_ctx.get("session_key", "") or "",
+            "userInfo": mcp_ctx.get("user_info"),
         }
         return self.arguments_model.model_validate(payload)
 

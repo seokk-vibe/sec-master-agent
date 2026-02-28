@@ -125,7 +125,7 @@ class UnknownError(JSONResponseException):
             request_id=access_info.request_id,
             service_label=access_info.service_label,
             exception_code=self.exception_code,
-            message="unknown error occured need to handle",
+            message="unknown error occurred need to handle",
             url_path=request.url.path,
             method=request.method,
             error_type=self.__class__.__name__,

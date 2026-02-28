@@ -101,7 +101,7 @@ class LoginFailed(AuthError):
 
     def handle(self, logger: Logger, request: Request) -> JSONResponse:
         warn_log = self.handle_log(request)
-        logger.warn(warn_log.model_dump(mode="json"))
+        logger.warning(warn_log.model_dump(mode="json"))
         # AuthError의 handle 메소드 건너뜀 (이중 로깅 방지)
         response = super(AuthError, self).handle(logger, request)
         return response

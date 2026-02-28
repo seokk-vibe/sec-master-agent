@@ -36,6 +36,7 @@ def get_mcp_client() -> MCPClientProtocol:
     )
 
 
+@lru_cache
 def get_intent_classifier_service() -> IntentClassifierService:
     settings = get_settings()
     return IntentClassifierService(
@@ -45,6 +46,7 @@ def get_intent_classifier_service() -> IntentClassifierService:
     )
 
 
+@lru_cache
 def get_query_orchestrator_service() -> QueryOrchestratorService:
     return QueryOrchestratorService(
         classifier=get_intent_classifier_service(),

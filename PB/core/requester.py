@@ -6,6 +6,8 @@ from http import HTTPStatus
 from logging import Logger
 from typing import IO, Annotated
 
+import asyncio
+
 import httpx
 from fastapi import Depends, Request
 
@@ -71,7 +73,8 @@ class HTTPResponse:
             status_message = f"HTTP status {self.status_code}"
 
         if _LEGACY_REQUESTER_AVAILABLE:
-            assert status is not None
+            if status is None:
+                raise RuntimeError(status_message)
             raise HTTPStatusException(
                 status_code=status.value,
                 exception_code=ResponseCodeEnum.HTTP_REQUEST_STATUS_ERROR,
@@ -83,6 +86,7 @@ class HTTPResponse:
 
 class HTTPClient:
     _client: httpx.AsyncClient | None = None
+    _lock: asyncio.Lock = asyncio.Lock()
 
     @classmethod
     def connect_client(
@@ -124,18 +128,22 @@ class HTTPClient:
         return cls._client
 
     @classmethod
-    def ensure_client(cls, default_timeout: float | None = None) -> httpx.AsyncClient:
+    async def ensure_client(cls, default_timeout: float | None = None) -> httpx.AsyncClient:
         if cls._client is not None:
             return cls._client
 
-        if default_timeout is None:
-            cls._client = httpx.AsyncClient(follow_redirects=True)
-        else:
-            cls._client = httpx.AsyncClient(
-                timeout=default_timeout,
-                follow_redirects=True,
-            )
-        return cls._client
+        async with cls._lock:
+            if cls._client is not None:
+                return cls._client
+
+            if default_timeout is None:
+                cls._client = httpx.AsyncClient(follow_redirects=True)
+            else:
+                cls._client = httpx.AsyncClient(
+                    timeout=default_timeout,
+                    follow_redirects=True,
+                )
+            return cls._client
 
     @classmethod
     async def close_client(cls):
@@ -154,7 +162,7 @@ async def send_request(
     json_data: dict | list | None = None,
     timeout: float | None = None,
 ) -> httpx.Response:
-    client = HTTPClient.ensure_client(default_timeout=timeout)
+    client = await HTTPClient.ensure_client(default_timeout=timeout)
     return await client.request(
         method=method,
         url=url,

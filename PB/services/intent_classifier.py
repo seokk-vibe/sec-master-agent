@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from PB.constant.scenarios import MAX_SCENARIO_ID
 from PB.core.vllm_client import MasterAgentClient
 
 
@@ -50,6 +51,6 @@ class IntentClassifierService:
             user_input=user_input,
             model_name_override=model_name_override,
         )
-        if 1 <= tool_id <= 19:
+        if 1 <= tool_id <= MAX_SCENARIO_ID:
             return tool_id
         return self._default_scenario_id

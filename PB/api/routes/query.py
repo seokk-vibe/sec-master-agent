@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 
 from PB.api.dependencies import get_query_orchestrator_service
 from PB.dto.schemas import (
@@ -16,14 +18,10 @@ from PB.services.query_orchestrator import QueryOrchestratorService
 router = APIRouter(prefix="/v1", tags=["query"])
 
 
-def _model_dump_safe(model: object) -> dict:
+def _model_dump_safe(model: Optional[BaseModel]) -> dict:
     if model is None:
         return {}
-    if hasattr(model, "model_dump"):
-        return model.model_dump(exclude_none=True)  # pydantic v2
-    if hasattr(model, "dict"):
-        return model.dict(exclude_none=True)  # pydantic v1 fallback
-    return {}
+    return model.model_dump(exclude_none=True)
 
 
 @router.get("/health")
@@ -61,9 +59,6 @@ async def classify_and_route_query(
             description=result.scenario.description,
         ),
         mcp=MCPInvocationResultDTO(
-            interface_ready=mcp_result.interface_ready,
-            route_key=mcp_result.route_key,
-            status=mcp_result.status,
             payload=mcp_result,
         ),
     )

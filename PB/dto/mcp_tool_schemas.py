@@ -51,9 +51,16 @@ class GetAcctRightsStatusArgumentsIn(MCPStrictModel):
     session_key: str = Field(default="", alias="sessionKey")
     user_info: GetAcctRightsStatusUserInfoIn = Field(alias="userInfo")
 
-    @field_validator("tool_step_id", "session_key", mode="before")
+    @field_validator("tool_step_id", mode="before")
     @classmethod
-    def _coerce_to_string(cls, value: object) -> object:
+    def _coerce_tool_step_id(cls, value: object) -> object:
+        if value is None:
+            return "1"
+        return str(value)
+
+    @field_validator("session_key", mode="before")
+    @classmethod
+    def _coerce_session_key(cls, value: object) -> object:
         if value is None:
             return ""
         return str(value)
@@ -138,7 +145,7 @@ class MCPInvokeResultOut(AllowExtraModel):
 
     # error / diagnostics
     message: Optional[str] = None
-    request_payload: Optional[Dict[str, Any]] = None
+    request_payload: Optional[Dict[str, Any]] = Field(default=None, exclude=True)
     response: Optional[Dict[str, Any]] = None
     http_status_code: Optional[int] = None
     rpc_error: Optional[Dict[str, Any]] = None
