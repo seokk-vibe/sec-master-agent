@@ -9,10 +9,10 @@ from PB.constant.classification_prompt import build_master_agent_system_prompt
 from PB.constant.scenarios import MAX_SCENARIO_ID
 from PB.core.requester import post_json
 from PB.dto.base import FrozenStrictModel
-from PB.dto.vllm_schemas import (
-    VLLMChatCompletionRequestOut,
-    VLLMChatCompletionResponseOut,
-    VLLMChatMessage,
+from PB.dto.llm_schemas import (
+    ChatCompletionRequestOut,
+    ChatCompletionResponseOut,
+    ChatMessage,
 )
 
 
@@ -23,9 +23,9 @@ class IntentClassificationMeta(FrozenStrictModel):
     error: Optional[str] = None
 
 
-class MasterAgentClient:
+class LLMClassifierClient:
     """
-    vLLM/LiteLLM(OpenAI-compatible chat completions) 기반 분류 클라이언트.
+    LLM(OpenAI-compatible chat completions) 기반 분류 클라이언트.
     현재 단계에서는 질문 분류(1~19)만 담당한다.
     """
 
@@ -65,7 +65,7 @@ class MasterAgentClient:
             return IntentClassificationMeta(
                 scenario_id=self.default_scenario_id,
                 fallback_used=True,
-                error="vLLM server URL is empty",
+                error="LLM server URL is empty",
             )
 
         payload = self._build_payload(user_input, model_name_override=model_name_override)
@@ -104,18 +104,18 @@ class MasterAgentClient:
         self,
         user_input: str,
         model_name_override: Optional[str] = None,
-    ) -> VLLMChatCompletionRequestOut:
+    ) -> ChatCompletionRequestOut:
         prompt = build_master_agent_system_prompt(user_input)
         model_name = (
             model_name_override.strip()
             if isinstance(model_name_override, str) and model_name_override.strip()
             else self.model_name
         )
-        return VLLMChatCompletionRequestOut(
+        return ChatCompletionRequestOut(
             model=model_name,
             messages=[
-                VLLMChatMessage(role="system", content=prompt),
-                VLLMChatMessage(role="user", content=""),
+                ChatMessage(role="system", content=prompt),
+                ChatMessage(role="user", content=""),
             ],
             max_tokens=10,
             temperature=0.0,
@@ -126,7 +126,7 @@ class MasterAgentClient:
     def _parse_response(self, response_data: Dict[str, Any]) -> Tuple[int, Optional[str], bool]:
         raw_content: Optional[str] = None
         try:
-            parsed = VLLMChatCompletionResponseOut.model_validate(response_data)
+            parsed = ChatCompletionResponseOut.model_validate(response_data)
             content = parsed.choices[0].message.content
             raw_content = str(content).strip() if content is not None else ""
             for token in raw_content.replace("\n", " ").split():
@@ -145,4 +145,3 @@ class MasterAgentClient:
             pass
 
         return self.default_scenario_id, raw_content, True
-

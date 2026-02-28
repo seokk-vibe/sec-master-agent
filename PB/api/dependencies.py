@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from PB.core.llm_client import LLMClassifierClient
 from PB.core.mcp_client import JsonRpcMCPClient, MCPClientProtocol, StubMCPClient
 from PB.core.settings import Settings, load_settings
-from PB.core.vllm_client import MasterAgentClient
 from PB.services.intent_classifier import IntentClassifierService
 from PB.services.query_orchestrator import QueryOrchestratorService
 
@@ -15,12 +15,12 @@ def get_settings() -> Settings:
 
 
 @lru_cache
-def get_master_agent_client() -> MasterAgentClient:
+def get_llm_classifier_client() -> LLMClassifierClient:
     settings = get_settings()
-    return MasterAgentClient(
-        server_url=settings.litellm_server_url or settings.vllm_server_url,
-        model_name=settings.vllm_model_name,
-        timeout=settings.vllm_timeout_seconds,
+    return LLMClassifierClient(
+        server_url=settings.litellm_server_url or settings.llm_server_url,
+        model_name=settings.llm_model_name,
+        timeout=settings.llm_timeout_seconds,
         default_scenario_id=settings.default_scenario_id,
     )
 
@@ -40,7 +40,7 @@ def get_mcp_client() -> MCPClientProtocol:
 def get_intent_classifier_service() -> IntentClassifierService:
     settings = get_settings()
     return IntentClassifierService(
-        vllm_client=get_master_agent_client(),
+        llm_client=get_llm_classifier_client(),
         default_scenario_id=settings.default_scenario_id,
         classification_enabled=settings.intent_classification_enabled,
     )

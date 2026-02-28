@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from PB.constant.scenarios import MAX_SCENARIO_ID
-from PB.core.vllm_client import MasterAgentClient
+from PB.core.llm_client import LLMClassifierClient
 
 
 class IntentClassifierService:
@@ -12,11 +12,11 @@ class IntentClassifierService:
 
     def __init__(
         self,
-        vllm_client: MasterAgentClient,
+        llm_client: LLMClassifierClient,
         default_scenario_id: int = 19,
         classification_enabled: bool = True,
     ) -> None:
-        self._vllm_client = vllm_client
+        self._llm_client = llm_client
         self._default_scenario_id = default_scenario_id
         self._classification_enabled = classification_enabled
 
@@ -47,7 +47,7 @@ class IntentClassifierService:
             return self._default_scenario_id
 
         model_name_override = self._resolve_classifier_model_name(context)
-        tool_id = await self._vllm_client.classify_intent(
+        tool_id = await self._llm_client.classify_intent(
             user_input=user_input,
             model_name_override=model_name_override,
         )

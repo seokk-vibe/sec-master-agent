@@ -44,7 +44,6 @@ async def classify_and_route_query(
             "session_id": body.session_id,
             "metadata": body.metadata,
             "classifier": _model_dump_safe(body.classifier),
-            "mcp": _model_dump_safe(body.mcp),
         },
     )
     mcp_result = result.mcp_result

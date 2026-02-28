@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A FastAPI-based "master agent" that classifies user queries via LLM (vLLM/LiteLLM) into 19 business scenarios, then dispatches matching MCP tool calls over JSON-RPC 2.0. The main application code lives in the `PB/` package.
+A FastAPI-based "master agent" that classifies user queries via LLM (LiteLLM/OpenAI-compatible) into 19 business scenarios, then dispatches matching MCP tool calls over JSON-RPC 2.0. The main application code lives in the `PB/` package.
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ A FastAPI-based "master agent" that classifies user queries via LLM (vLLM/LiteLL
 - **FastAPI** (async) with **Uvicorn**
 - **Pydantic v2** for all data validation
 - **httpx** (async, connection-pooled) for HTTP calls
-- **vLLM / LiteLLM** (OpenAI-compatible chat completions API) for intent classification
+- **LiteLLM** (OpenAI-compatible chat completions API) for intent classification
 - **MCP** via JSON-RPC 2.0 over HTTP
 
 ## Commands
@@ -48,7 +48,7 @@ POST /api/v1/query
 - **`PB/api/dependencies.py`** — DI wiring via `@lru_cache` factory functions; settings, clients, and services are app-scoped singletons
 - **`PB/services/intent_classifier.py`** — Wraps LLM call for intent classification; supports per-request model override (e.g., `provider: "chatgpt"`)
 - **`PB/services/query_orchestrator.py`** — Orchestrates classify → scenario lookup → MCP invoke
-- **`PB/core/vllm_client.py`** — `MasterAgentClient` handles LLM chat completion calls with retry (2x, 0.5s sleep)
+- **`PB/core/llm_client.py`** — `LLMClassifierClient` handles LLM chat completion calls with retry (2x, 0.5s sleep)
 - **`PB/core/mcp_client.py`** — `MCPClientProtocol` with two implementations: `StubMCPClient` (offline dev) and `JsonRpcMCPClient` (real)
 - **`PB/core/mcp_adapters.py`** — Per-tool adapters that build typed argument payloads; registry maps tool names to adapters
 - **`PB/core/requester.py`** — `HTTPClient` singleton managing the shared `httpx.AsyncClient` pool
@@ -70,9 +70,9 @@ All config is via environment variables (no YAML loading in PB module). Key vari
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `VLLM_SERVER_URL` | `http://172.17.102.34:8150/v1/chat/completions` | vLLM endpoint |
-| `LITELLM_SERVER_URL` | `""` | LiteLLM proxy (preferred over vLLM if set) |
-| `VLLM_MODEL_NAME` | `Qwen2.5-72B-Instruct` | Default model |
+| `LLM_SERVER_URL` | `http://:8150/v1/chat/completions` | LLM endpoint |
+| `LITELLM_SERVER_URL` | `""` | LiteLLM proxy (preferred over LLM_SERVER_URL if set) |
+| `LLM_MODEL_NAME` | `Qwen2.5-72B-Instruct` | Default model |
 | `MCP_STUB_MODE` | `true` | Use StubMCPClient (no real MCP calls) |
 | `MCP_SERVER_URL` | `""` | MCP JSON-RPC server endpoint |
 | `INTENT_CLASSIFICATION_ENABLED` | `true` | Toggle LLM classification |

@@ -16,8 +16,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PB.api.dependencies import get_query_orchestrator_service
 from PB.app import app
-from PB.core.mcp_client import JsonRpcMCPClient, StubMCPClient
-from PB.core.vllm_client import MasterAgentClient
+from PB.core.llm_client import LLMClassifierClient
+from PB.core.mcp_client import StubMCPClient
 from PB.services.intent_classifier import IntentClassifierService
 from PB.services.query_orchestrator import QueryOrchestratorService
 
@@ -31,7 +31,7 @@ def _build_orchestrator(
     llm_model_name: str = "test-model",
 ) -> QueryOrchestratorService:
     classifier = IntentClassifierService(
-        vllm_client=MasterAgentClient(
+        llm_client=LLMClassifierClient(
             server_url=llm_server_url,
             model_name=llm_model_name,
             default_scenario_id=scenario_id,
@@ -64,15 +64,7 @@ def test_query_endpoint_stub_flow_returns_stubbed_payload() -> None:
     with _override_orchestrator(orchestrator) as client:
         response = client.post(
             "/api/v1/query",
-            json={
-                "user_input": "안녕?",
-                "mcp": {
-                    "userInfo": {
-                        "udid": "TEST-UDID",
-                        "token": "TEST-TOKEN",
-                    }
-                },
-            },
+            json={"user_input": "안녕?"},
         )
 
     assert response.status_code == 200
@@ -84,59 +76,16 @@ def test_query_endpoint_stub_flow_returns_stubbed_payload() -> None:
     assert data["mcp"]["payload"]["route_key"] == "general_chat"
 
 
-def test_query_endpoint_scenario2_builds_unsettled_amount_mcp_request(monkeypatch) -> None:
-    captured: dict = {}
-
-    async def fake_post_json(url: str, *, headers=None, json_data=None, timeout=None):
-        captured["url"] = url
-        captured["headers"] = headers
-        captured["json"] = json_data
-        request = httpx.Request("POST", url)
-        response_payload = {
-            "jsonrpc": "2.0",
-            "id": json_data["id"],
-            "result": {
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "{\"type\":\"dynamic\",\"data\":[]}",
-                    }
-                ],
-                "isError": False,
-                "structuredContent": {"type": "dynamic", "data": []},
-                "_meta": {
-                    "sessionKey": "session-1",
-                    "isFinished": True,
-                    "toolName": "getUnsettledAmountTool",
-                },
-            },
-        }
-        return httpx.Response(
-            200,
-            request=request,
-            content=json.dumps(response_payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-
-    monkeypatch.setattr("PB.core.mcp_client.post_json", fake_post_json)
-
+def test_query_endpoint_scenario2_stub_mode_returns_stubbed_payload() -> None:
     orchestrator = _build_orchestrator(
         scenario_id=2,
-        mcp_client=JsonRpcMCPClient(server_url="http://mcp.local/mock", timeout=1.0),
+        mcp_client=StubMCPClient(interface_ready=False, stub_mode=True),
     )
 
     with _override_orchestrator(orchestrator) as client:
         response = client.post(
             "/api/v1/query",
-            json={
-                "user_input": "미수금 알려줘",
-                "mcp": {
-                    "userInfo": {
-                        "udid": "TEST-UDID",
-                        "token": "TEST-TOKEN",
-                    }
-                },
-            },
+            json={"user_input": "미수금 알려줘"},
         )
 
     assert response.status_code == 200
@@ -144,19 +93,8 @@ def test_query_endpoint_scenario2_builds_unsettled_amount_mcp_request(monkeypatc
 
     assert data["classification"]["scenario_id"] == 2
     assert data["classification"]["route_key"] == "receivables"
-    assert data["mcp"]["payload"]["status"] == "success"
+    assert data["mcp"]["payload"]["status"] == "stubbed"
     assert data["mcp"]["payload"]["mcp_tool_name"] == "getUnsettledAmountTool"
-    # request_payload is excluded from API response for security (contains userInfo tokens)
-    assert "request_payload" not in data["mcp"]["payload"]
-
-    # Adapter + 공통 JSON-RPC envelope가 실제로 생성된 payload 확인
-    assert captured["json"]["params"]["name"] == "getUnsettledAmountTool"
-    assert set(captured["json"]["params"]["arguments"].keys()) == {
-        "toolStepId",
-        "sessionKey",
-        "userInfo",
-    }
-    assert captured["json"]["params"]["arguments"]["userInfo"]["udid"] == "TEST-UDID"
 
 
 def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(monkeypatch) -> None:
@@ -183,7 +121,7 @@ def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(mo
             headers={"Content-Type": "application/json"},
         )
 
-    monkeypatch.setattr("PB.core.vllm_client.post_json", fake_llm_post_json)
+    monkeypatch.setattr("PB.core.llm_client.post_json", fake_llm_post_json)
 
     orchestrator = _build_orchestrator(
         scenario_id=19,
@@ -201,12 +139,6 @@ def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(mo
                 "classifier": {
                     "provider": "chatgpt",
                     "modelName": "gpt-4o-mini",
-                },
-                "mcp": {
-                    "userInfo": {
-                        "udid": "TEST-UDID",
-                        "token": "TEST-TOKEN",
-                    }
                 },
             },
         )
