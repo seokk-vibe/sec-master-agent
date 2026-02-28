@@ -1,6 +1,6 @@
 from PB.constant.scenarios import MAX_SCENARIO_ID
 
-MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE = """
+CLASSIFICATION_SYSTEM_PROMPT = """
 # Role
 당신은 챗봇의 마스터 에이전트입니다.
 사용자의 질문을 분석하여, 아래 {max_scenario_id}개 시나리오 중 가장 정확한 하나를 선택하세요.
@@ -31,14 +31,5 @@ MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE = """
 # Guide
 - '어떻게 해야 하나요?', '왜 안 돼?' 등은 일반대화({max_scenario_id})로 분류
 - 반드시 숫자만 반환하고 설명 문장은 출력하지 마세요.
-
-질문: {{user_input}}
-응답 형식: 숫자만 (예: 11)
+- 응답 형식: 숫자만 (예: 11)
 """.strip().format(max_scenario_id=MAX_SCENARIO_ID)
-
-# 기존 코드 호환용 alias
-MASTER_AGENT_SYSTEM_PROMPT = MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE
-
-
-def build_master_agent_system_prompt(user_input: str) -> str:
-    return MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE.format(user_input=user_input)

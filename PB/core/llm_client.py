@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from pydantic import ValidationError
 
-from PB.constant.classification_prompt import build_master_agent_system_prompt
+from PB.constant.classification_prompt import CLASSIFICATION_SYSTEM_PROMPT
 from PB.constant.scenarios import MAX_SCENARIO_ID
 from PB.core.requester import post_json
 from PB.dto.base import FrozenStrictModel
@@ -105,7 +105,6 @@ class LLMClassifierClient:
         user_input: str,
         model_name_override: Optional[str] = None,
     ) -> ChatCompletionRequestOut:
-        prompt = build_master_agent_system_prompt(user_input)
         model_name = (
             model_name_override.strip()
             if isinstance(model_name_override, str) and model_name_override.strip()
@@ -114,8 +113,8 @@ class LLMClassifierClient:
         return ChatCompletionRequestOut(
             model=model_name,
             messages=[
-                ChatMessage(role="system", content=prompt),
-                ChatMessage(role="user", content=""),
+                ChatMessage(role="system", content=CLASSIFICATION_SYSTEM_PROMPT),
+                ChatMessage(role="user", content=user_input),
             ],
             max_tokens=10,
             temperature=0.0,

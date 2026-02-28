@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from PB.constant.classification_prompt import MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE
+from PB.constant.classification_prompt import CLASSIFICATION_SYSTEM_PROMPT
 
 
 class SupportsIntentClassification(Protocol):
@@ -33,4 +33,4 @@ async def route_intent(
 
 def build_classification_prompt(user_input: str) -> str:
     """기존 스크립트/테스트에서 재사용할 수 있는 프롬프트 렌더러."""
-    return MASTER_AGENT_SYSTEM_PROMPT_TEMPLATE.format(user_input=user_input)
+    return f"{CLASSIFICATION_SYSTEM_PROMPT}\n\n질문: {user_input}"
