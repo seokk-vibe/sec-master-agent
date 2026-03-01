@@ -89,6 +89,16 @@ Config is loaded from `config_{profile}.yaml` with environment variables taking 
 
 ### Config files
 
+실제 설정 파일(`config_dev.yaml`, `config_ext.yaml`, `config_prd.yaml`)은 `.gitignore`에 등록되어 커밋되지 않는다.
+새 환경 세팅 시 `config_example.yaml`을 복사하여 프로파일별 파일을 생성한다.
+
+```bash
+cp config_example.yaml config_ext.yaml   # 외부망 개발용
+cp config_example.yaml config_dev.yaml   # 내부망 개발용
+cp config_example.yaml config_prd.yaml   # 내부망 운영용
+```
+
+- **`config_example.yaml`** — 커밋되는 템플릿 (비밀값 미포함)
 - **`config_ext.yaml`** — 외부망 개발 환경 (`debug: true`, `mcp_stub_mode: true`, `llm_caller_type: openai`, OpenAI SDK 직접 호출)
 - **`config_dev.yaml`** — 내부망 개발 환경 (`debug: true`, `mcp_stub_mode: true`, `llm_caller_type: litellm`, LLM direct via `llm_server_url`)
 - **`config_prd.yaml`** — 내부망 운영 환경 (`debug: false`, `mcp_stub_mode: false`, `llm_caller_type: litellm`, LiteLLM proxy via `litellm_server_url`, `llm_timeout: 30s`)
@@ -113,6 +123,12 @@ Any setting in the YAML can be overridden by the corresponding environment varia
 | `MCP_STUB_MODE` | `mcp_stub_mode` | `true` (dev) / `false` (prd) | Use StubMCPCaller (no real MCP calls) |
 | `MCP_SERVER_URL` | `mcp_server_url` | `""` | MCP JSON-RPC server endpoint |
 | `MCP_TIMEOUT_SECONDS` | `mcp_timeout_seconds` | `10.0` | MCP request timeout |
+
+## Logging
+
+- `PB` 네임스페이스 로거가 `PB/app.py`에서 설정된다 (`debug=true` → DEBUG, 아니면 INFO)
+- `PB.core.llm_caller` — LLM 요청/응답 전문과 분류 결과를 INFO 레벨로 출력
+- 에러·재시도는 WARNING 레벨로 출력
 
 ## Testing Patterns
 

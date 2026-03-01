@@ -1,61 +1,73 @@
-# HANDOFF — QueryRequestDTO mcp 제거 + vllm → llm 리네이밍
+# HANDOFF — OpenAI SDK caller 추가 + 3-프로파일 설정 체계
 
 ## 작업 요약
 
-클라이언트 요청 DTO에서 MCP 내부 구현 세부사항을 제거하고, vLLM 네이밍을 일반적인 LLM 네이밍으로 정리했다.
+외부망 개발 환경에서 LiteLLM 프록시 없이 OpenAI API를 직접 호출할 수 있도록 `openai` SDK 기반 caller를 추가했다.
+설정 프로파일을 `ext`(외부망) / `dev`(내부망 개발) / `prd`(내부망 운영) 3개로 분리하고,
+실제 설정 파일은 `.gitignore`로 제외하여 비밀값 유출을 방지한다.
 
 ## 변경된 파일
 
-### MCP 필드 제거
+### 신규 파일
+| 파일 | 설명 |
+|------|------|
+| `config_example.yaml` | 커밋되는 설정 템플릿 (비밀값 없음) |
+| `config_ext.yaml` | 외부망 개발 설정 (`.gitignore`, 커밋 안 됨) |
+
+### 수정된 파일
 | 파일 | 변경 내용 |
 |------|-----------|
-| `PB/dto/schemas.py` | `MCPUserInfoDTO`, `MCPRequestContextDTO` 클래스 삭제, `QueryRequestDTO.mcp` 필드 삭제 |
-| `PB/api/routes/query.py` | context 딕셔너리에서 `"mcp"` 항목 제거 |
+| `requirements.txt` | `openai>=1.0.0` 추가 |
+| `PB/core/llm_caller.py` | `LLMClassifierCallerProtocol` 추가, `parse_llm_classification_response()` 모듈 함수로 추출, `OpenAIClassifierCaller` 클래스 추가, 두 caller에 INFO/WARNING 로깅 추가 |
+| `PB/core/settings.py` | `llm_caller_type`, `openai_api_key` 필드 추가 |
+| `PB/api/dependencies.py` | `get_llm_classifier_caller()` 반환 타입 `LLMClassifierCallerProtocol`로 변경, `llm_caller_type`에 따라 OpenAI/LiteLLM caller 분기 |
+| `PB/services/intent_classifier.py` | 타입힌트 `LLMClassifierCaller` → `LLMClassifierCallerProtocol` |
+| `PB/app.py` | `PB` 네임스페이스 로거 설정 추가 (StreamHandler, debug 레벨 연동) |
+| `PB/test/test_query_flow_smoke.py` | import 추가, 공유 파서 테스트 2개 + OpenAI caller mock 테스트 1개 추가 (총 6개) |
+| `config_dev.yaml` | `llm_caller_type: "litellm"`, `openai_api_key: ""` 추가, git 추적 제거 |
+| `config_prd.yaml` | `llm_caller_type: "litellm"`, `openai_api_key: ""` 추가 |
+| `.gitignore` | `config_dev.yaml`, `config_ext.yaml`, `config_prd.yaml` 추가 |
+| `CLAUDE.md` | 3-프로파일 체계, OpenAI SDK, 로깅, config_example.yaml 문서 반영 |
 
-### 파일 리네이밍
-| Before | After |
-|--------|-------|
-| `PB/core/vllm_client.py` | `PB/core/llm_client.py` |
-| `PB/dto/vllm_schemas.py` | `PB/dto/llm_schemas.py` |
+## 설정 프로파일 체계
 
-### 클래스/변수 리네이밍
-| Before | After |
-|--------|-------|
-| `MasterAgentClient` | `LLMClassifierClient` |
-| `VLLMChatMessage` | `ChatMessage` |
-| `VLLMChatCompletionRequestOut` | `ChatCompletionRequestOut` |
-| `VLLMResponseMessageOut` | `ChatResponseMessageOut` |
-| `VLLMChoiceOut` | `ChatChoiceOut` |
-| `VLLMChatCompletionResponseOut` | `ChatCompletionResponseOut` |
-| `get_master_agent_client()` | `get_llm_classifier_client()` |
-| `_vllm_client` | `_llm_client` |
-| `vllm_client=` (param) | `llm_client=` (param) |
+| 프로파일 | 파일 | 용도 | `llm_caller_type` | 커밋 여부 |
+|----------|------|------|--------------------|-----------|
+| — | `config_example.yaml` | 템플릿 | `openai` | O |
+| `ext` | `config_ext.yaml` | 외부망 개발 | `openai` | X |
+| `dev` | `config_dev.yaml` | 내부망 개발 | `litellm` | X |
+| `prd` | `config_prd.yaml` | 내부망 운영 | `litellm` | X |
 
-### Settings 환경변수 리네이밍
-| Before | After |
-|--------|-------|
-| `VLLM_SERVER_URL` | `LLM_SERVER_URL` |
-| `VLLM_MODEL_NAME` | `LLM_MODEL_NAME` |
-| `VLLM_TIMEOUT_SECONDS` | `LLM_TIMEOUT_SECONDS` |
+새 환경 세팅: `cp config_example.yaml config_{profile}.yaml` 후 값 수정.
 
-### 참조 업데이트
-| 파일 | 변경 내용 |
-|------|-----------|
-| `PB/core/settings.py` | `vllm_server_url` → `llm_server_url`, `vllm_model_name` → `llm_model_name`, `vllm_timeout_seconds` → `llm_timeout_seconds` |
-| `PB/api/dependencies.py` | import 경로 + 함수명 + 파라미터명 업데이트 |
-| `PB/services/intent_classifier.py` | import 경로 + `_vllm_client` → `_llm_client` |
-| `PB/test/test_query_flow_smoke.py` | import 업데이트, 요청 JSON에서 `mcp` 블록 제거, scenario 2 테스트를 stub 모드로 변경, monkeypatch 경로 `PB.core.llm_client.post_json`으로 변경 |
-| `CLAUDE.md` | vllm_client → llm_client 문서 반영 |
+## 아키텍처 변경
 
-## 삭제된 파일
-- `PB/core/vllm_client.py`
-- `PB/dto/vllm_schemas.py`
+### LLM Caller 이중화
+
+```
+LLMClassifierCallerProtocol (Protocol)
+  ├── LLMClassifierCaller        — httpx/post_json 기반 (LiteLLM 프록시, 내부망)
+  └── OpenAIClassifierCaller     — openai SDK 기반 (OpenAI API 직접, 외부망)
+```
+
+- 공유 파서 `parse_llm_classification_response()` — 두 caller 모두 동일 파싱 로직 사용
+- `OpenAIClassifierCaller`는 `openai` 패키지를 `__init__`에서 lazy import → prd에서 미설치 시에도 모듈 로딩 정상
+
+### DI 분기 (`dependencies.py`)
+
+```python
+if settings.llm_caller_type == "openai":
+    return OpenAIClassifierCaller(...)
+else:
+    return LLMClassifierCaller(...)
+```
 
 ## 테스트 결과
-- `pytest PB/test/ -v` — 3개 smoke test 모두 통과
-- `from PB.core.llm_client import LLMClassifierClient` — 정상
-- `from PB.app import app` — 정상
+
+- `pytest PB/test/ -v` — 6개 테스트 모두 통과
+- 실제 OpenAI API 호출 검증 완료 (`APP_PROFILE=ext`, gpt-4o-mini, scenario 분류 정상)
 
 ## 후속 작업 참고
-- `PB/core/mcp_adapters.py`의 `_CommonUserInfoToolAdapterBase.build_arguments()`는 여전히 `context["mcp"]`에서 `userInfo`를 읽는다. 클라이언트 요청에서 mcp를 제거했으므로, 실제 MCP 호출 시 `userInfo`를 서버 내부에서 주입하는 로직이 필요하다.
-- `litellm_server_url` 필드명은 기존 유지 (LiteLLM은 별도 프록시 서비스를 가리키므로 구분이 필요)
+
+- `config_prd.yaml`은 `.gitignore`에 추가했으나, 이미 이전 커밋에서 추적 중이므로 `git rm --cached config_prd.yaml`이 필요할 수 있음
+- OpenAI SDK는 자체적으로 2회 자동 재시도 + 커넥션 풀링을 내장하고 있어, caller의 3회 재시도와 이중 보호됨
