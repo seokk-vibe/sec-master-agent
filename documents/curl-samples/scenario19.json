@@ -1,3 +1,5 @@
+// curl -X POST http://127.0.0.1:8000/api/v1/query -H "Content-Type: application/json" -d "{\"user_input\": \"안녕하세요\", \"classifier\": {\"model_name\": \"gpt-4o\"}}"
+
 {
     "request_id": "43b71301-dd8d-4c3d-8562-2afec604d0cb",
     "user_input": "안녕하세요",
