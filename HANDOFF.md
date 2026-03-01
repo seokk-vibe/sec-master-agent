@@ -1,33 +1,51 @@
-# HANDOFF — OpenAI SDK caller 추가 + 3-프로파일 설정 체계
+# HANDOFF — OpenAI SDK caller 추가 + 레거시 정리
 
 ## 작업 요약
 
 외부망 개발 환경에서 LiteLLM 프록시 없이 OpenAI API를 직접 호출할 수 있도록 `openai` SDK 기반 caller를 추가했다.
 설정 프로파일을 `ext`(외부망) / `dev`(내부망 개발) / `prd`(내부망 운영) 3개로 분리하고,
 실제 설정 파일은 `.gitignore`로 제외하여 비밀값 유출을 방지한다.
+레거시 파일 정리 및 리네이밍 잔재를 모두 커밋했다.
+
+## 커밋 이력
+
+| 커밋 | 내용 |
+|------|------|
+| `e062561` | OpenAI SDK caller 추가, 3-프로파일 체계, config_example.yaml, .gitignore |
+| `21b7ba3` | 레거시 `call_master_agent.py` 삭제, HANDOFF/CLAUDE.md 업데이트 |
+| `5fc765b` | 레거시 `llm_client.py`, `mcp_client.py` 삭제 |
+| `cb7d8dc` | `mcp_caller.py` 추가, `query_orchestrator.py` 리네이밍 반영, 빈 파일 정리 |
 
 ## 변경된 파일
 
 ### 신규 파일
 | 파일 | 설명 |
 |------|------|
+| `PB/core/mcp_caller.py` | `mcp_client.py`에서 리네이밍 (MCPCallerProtocol, StubMCPCaller, JsonRpcMCPCaller) |
 | `config_example.yaml` | 커밋되는 설정 템플릿 (비밀값 없음) |
-| `config_ext.yaml` | 외부망 개발 설정 (`.gitignore`, 커밋 안 됨) |
 
 ### 수정된 파일
 | 파일 | 변경 내용 |
 |------|-----------|
 | `requirements.txt` | `openai>=1.0.0` 추가 |
-| `PB/core/llm_caller.py` | `LLMClassifierCallerProtocol` 추가, `parse_llm_classification_response()` 모듈 함수로 추출, `OpenAIClassifierCaller` 클래스 추가, 두 caller에 INFO/WARNING 로깅 추가 |
+| `PB/core/llm_caller.py` | `LLMClassifierCallerProtocol` 추가, `parse_llm_classification_response()` 모듈 함수 추출, `OpenAIClassifierCaller` 클래스 추가, INFO/WARNING 로깅 추가 |
 | `PB/core/settings.py` | `llm_caller_type`, `openai_api_key` 필드 추가 |
-| `PB/api/dependencies.py` | `get_llm_classifier_caller()` 반환 타입 `LLMClassifierCallerProtocol`로 변경, `llm_caller_type`에 따라 OpenAI/LiteLLM caller 분기 |
+| `PB/api/dependencies.py` | 반환 타입 `LLMClassifierCallerProtocol`로 변경, `llm_caller_type`에 따라 caller 분기 |
 | `PB/services/intent_classifier.py` | 타입힌트 `LLMClassifierCaller` → `LLMClassifierCallerProtocol` |
+| `PB/services/query_orchestrator.py` | `mcp_client` → `mcp_caller` 리네이밍, docstring 추가 |
 | `PB/app.py` | `PB` 네임스페이스 로거 설정 추가 (StreamHandler, debug 레벨 연동) |
-| `PB/test/test_query_flow_smoke.py` | import 추가, 공유 파서 테스트 2개 + OpenAI caller mock 테스트 1개 추가 (총 6개) |
-| `config_dev.yaml` | `llm_caller_type: "litellm"`, `openai_api_key: ""` 추가, git 추적 제거 |
-| `config_prd.yaml` | `llm_caller_type: "litellm"`, `openai_api_key: ""` 추가 |
+| `PB/test/test_query_flow_smoke.py` | 공유 파서 테스트 2개 + OpenAI caller mock 테스트 1개 추가 (총 6개) |
 | `.gitignore` | `config_dev.yaml`, `config_ext.yaml`, `config_prd.yaml` 추가 |
-| `CLAUDE.md` | 3-프로파일 체계, OpenAI SDK, 로깅, config_example.yaml 문서 반영 |
+| `CLAUDE.md` | 3-프로파일 체계, OpenAI SDK, 로깅, config_example.yaml 워크플로우 문서 반영 |
+
+### 삭제된 파일
+| 파일 | 사유 |
+|------|------|
+| `call_master_agent.py` | 레거시 래퍼, `LLMClassifierCallerProtocol`로 대체 |
+| `PB/core/llm_client.py` | `llm_caller.py`로 리네이밍 완료 |
+| `PB/core/mcp_client.py` | `mcp_caller.py`로 리네이밍 완료 |
+| `config_dev.yaml` (git 추적) | `.gitignore`로 이동, 비밀값 보호 |
+| `curl`, `PB/test/scenario*.json`, `package.json`, `package-lock.json`, `documents/20260228.md` | 빈 파일 / 불필요 |
 
 ## 설정 프로파일 체계
 
