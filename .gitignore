@@ -27,6 +27,11 @@ node_modules/
 dist/
 build/
 
+# Config files (contain secrets) — only config_example.yaml is committed
+config_dev.yaml
+config_ext.yaml
+config_prd.yaml
+
 # Editor settings
 .vscode/
 .idea/

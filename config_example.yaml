@@ -1,0 +1,17 @@
+app_name: "PB Backend"
+app_version: "0.1.0"
+debug: true
+
+litellm_server_url: ""
+llm_server_url: ""
+llm_model_name: "gpt-4o-mini"
+llm_timeout_seconds: 30.0
+llm_caller_type: "openai"
+openai_api_key: ""
+
+intent_classification_enabled: true
+default_scenario_id: 19
+
+mcp_stub_mode: true
+mcp_server_url: ""
+mcp_timeout_seconds: 10.0

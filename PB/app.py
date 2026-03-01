@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -10,6 +11,13 @@ from PB.core.requester import HTTPClient
 from PB.core.settings import load_settings
 
 settings = load_settings()
+
+_pb_logger = logging.getLogger("PB")
+if not _pb_logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s | %(message)s"))
+    _pb_logger.addHandler(_handler)
+_pb_logger.setLevel(logging.DEBUG if settings.debug else logging.INFO)
 
 
 @asynccontextmanager

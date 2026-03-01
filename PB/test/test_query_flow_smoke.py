@@ -7,6 +7,7 @@ import sys
 from typing import Iterator
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 # pytest 실행 환경에 따라 프로젝트 루트가 sys.path에 없을 수 있어 보정한다.
@@ -16,8 +17,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PB.api.dependencies import get_query_orchestrator_service
 from PB.app import app
-from PB.core.llm_client import LLMClassifierClient
-from PB.core.mcp_client import StubMCPClient
+from PB.core.llm_caller import LLMClassifierCaller, OpenAIClassifierCaller, parse_llm_classification_response
+from PB.core.mcp_caller import StubMCPCaller
 from PB.services.intent_classifier import IntentClassifierService
 from PB.services.query_orchestrator import QueryOrchestratorService
 
@@ -25,13 +26,13 @@ from PB.services.query_orchestrator import QueryOrchestratorService
 def _build_orchestrator(
     *,
     scenario_id: int,
-    mcp_client,
+    mcp_caller,
     classification_enabled: bool = False,
     llm_server_url: str = "",
     llm_model_name: str = "test-model",
 ) -> QueryOrchestratorService:
     classifier = IntentClassifierService(
-        llm_client=LLMClassifierClient(
+        llm_caller=LLMClassifierCaller(
             server_url=llm_server_url,
             model_name=llm_model_name,
             default_scenario_id=scenario_id,
@@ -41,7 +42,7 @@ def _build_orchestrator(
     )
     return QueryOrchestratorService(
         classifier=classifier,
-        mcp_client=mcp_client,
+        mcp_caller=mcp_caller,
     )
 
 
@@ -58,7 +59,7 @@ def _override_orchestrator(orchestrator: QueryOrchestratorService) -> Iterator[T
 def test_query_endpoint_stub_flow_returns_stubbed_payload() -> None:
     orchestrator = _build_orchestrator(
         scenario_id=19,
-        mcp_client=StubMCPClient(interface_ready=False, stub_mode=True),
+        mcp_caller=StubMCPCaller(interface_ready=False, stub_mode=True),
     )
 
     with _override_orchestrator(orchestrator) as client:
@@ -79,7 +80,7 @@ def test_query_endpoint_stub_flow_returns_stubbed_payload() -> None:
 def test_query_endpoint_scenario2_stub_mode_returns_stubbed_payload() -> None:
     orchestrator = _build_orchestrator(
         scenario_id=2,
-        mcp_client=StubMCPClient(interface_ready=False, stub_mode=True),
+        mcp_caller=StubMCPCaller(interface_ready=False, stub_mode=True),
     )
 
     with _override_orchestrator(orchestrator) as client:
@@ -121,11 +122,11 @@ def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(mo
             headers={"Content-Type": "application/json"},
         )
 
-    monkeypatch.setattr("PB.core.llm_client.post_json", fake_llm_post_json)
+    monkeypatch.setattr("PB.core.llm_caller.post_json", fake_llm_post_json)
 
     orchestrator = _build_orchestrator(
         scenario_id=19,
-        mcp_client=StubMCPClient(interface_ready=False, stub_mode=True),
+        mcp_caller=StubMCPCaller(interface_ready=False, stub_mode=True),
         classification_enabled=True,
         llm_server_url="http://litellm.local/v1/chat/completions",
         llm_model_name="fallback-model",
@@ -151,3 +152,61 @@ def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(mo
     # 사용자 선택 classifier.modelName 이 LLM 분류 요청 payload.model 로 반영되어야 한다.
     assert captured["url"] == "http://litellm.local/v1/chat/completions"
     assert captured["json"]["model"] == "gpt-4o-mini"
+
+
+def test_parse_llm_classification_response_extracts_scenario_id() -> None:
+    """공유 파서 parse_llm_classification_response가 정상적으로 시나리오 ID를 추출하는지 검증한다."""
+    response_data = {
+        "choices": [{"message": {"content": "5"}}],
+    }
+    scenario_id, raw_content, fallback_used = parse_llm_classification_response(response_data, 19)
+    assert scenario_id == 5
+    assert raw_content == "5"
+    assert fallback_used is False
+
+
+def test_parse_llm_classification_response_fallback_on_invalid() -> None:
+    """파싱 불가능한 응답에서 폴백 시나리오 ID를 반환하는지 검증한다."""
+    response_data = {
+        "choices": [{"message": {"content": "I don't know"}}],
+    }
+    scenario_id, raw_content, fallback_used = parse_llm_classification_response(response_data, 19)
+    assert scenario_id == 19
+    assert fallback_used is True
+
+
+@pytest.mark.asyncio
+async def test_openai_classifier_caller_parses_scenario_id(monkeypatch) -> None:
+    """OpenAIClassifierCaller가 SDK 응답에서 시나리오 ID를 올바르게 파싱하는지 검증한다."""
+    import types
+
+    # openai.AsyncOpenAI를 mock으로 대체
+    mock_module = types.ModuleType("openai")
+
+    class _MockCompletion:
+        def model_dump(self):
+            return {"choices": [{"message": {"content": "7"}}]}
+
+    class _MockCompletions:
+        async def create(self, **kwargs):
+            return _MockCompletion()
+
+    class _MockChat:
+        def __init__(self):
+            self.completions = _MockCompletions()
+
+    class MockAsyncOpenAI:
+        def __init__(self, **kwargs):
+            self.chat = _MockChat()
+
+    mock_module.AsyncOpenAI = MockAsyncOpenAI
+    monkeypatch.setitem(sys.modules, "openai", mock_module)
+
+    caller = OpenAIClassifierCaller(
+        model_name="gpt-4o-mini",
+        api_key="sk-test",
+        default_scenario_id=19,
+    )
+
+    result = await caller.classify_intent("테스트 질문")
+    assert result == 7
