@@ -1,0 +1,51 @@
+{
+   "request_id":"eeb9c744-661e-4387-a555-07e381f547e7",
+   "user_input":"계좌권리현황",
+   "classification":{
+      "scenario_id":1,
+      "scenario_name":"계좌 권리현황",
+      "route_key":"account_rights",
+      "description":"계좌 권리 관련 조회"
+   },
+   "mcp":{
+      "payload":{
+         "status":"stubbed",
+         "interface_ready":false,
+         "tool_supported":true,
+         "scenario_id":1,
+         "scenario_name":"계좌 권리현황",
+         "route_key":"account_rights",
+         "mcp_tool_name":"getAcctRightsStatusTool",
+         "message":null,
+         "response":null,
+         "http_status_code":null,
+         "rpc_error":null,
+         "jsonrpc":null,
+         "id":null,
+         "is_error":null,
+         "content":[
+            
+         ],
+         "structured_content":null,
+         "content_text_json":null,
+         "meta":{
+            
+         },
+         "session_key":null,
+         "is_finished":null,
+         "tool_name":null,
+         "next_tool_step_id":null,
+         "user_input":"계좌권리현황",
+         "context":{
+            "request_id":"eeb9c744-661e-4387-a555-07e381f547e7",
+            "user_id":null,
+            "session_id":null,
+            "metadata":null,
+            "classifier":{
+               "model_name":"gpt-4o"
+            }
+         },
+         "next_action":"replace StubMCPCaller.invoke with actual MCP client call"
+      }
+   }
+}

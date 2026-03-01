@@ -1,0 +1,47 @@
+{
+    "request_id": "43b71301-dd8d-4c3d-8562-2afec604d0cb",
+    "user_input": "안녕하세요",
+    "classification": {
+        "scenario_id": 19,
+        "scenario_name": "일반대화(FAQ) 및 Chiplist 대화",
+        "route_key": "general_chat",
+        "description": "FAQ/일반대화"
+    },
+    "mcp": {
+        "payload": {
+            "status": "stubbed",
+            "interface_ready": false,
+            "tool_supported": false,
+            "scenario_id": 19,
+            "scenario_name": "일반대화(FAQ) 및 Chiplist 대화",
+            "route_key": "general_chat",
+            "mcp_tool_name": null,
+            "message": null,
+            "response": null,
+            "http_status_code": null,
+            "rpc_error": null,
+            "jsonrpc": null,
+            "id": null,
+            "is_error": null,
+            "content": [],
+            "structured_content": null,
+            "content_text_json": null,
+            "meta": {},
+            "session_key": null,
+            "is_finished": null,
+            "tool_name": null,
+            "next_tool_step_id": null,
+            "user_input": "안녕하세요",
+            "context": {
+                "request_id": "43b71301-dd8d-4c3d-8562-2afec604d0cb",
+                "user_id": null,
+                "session_id": null,
+                "metadata": null,
+                "classifier": {
+                    "model_name": "gpt-4o"
+                }
+            },
+            "next_action": "replace StubMCPCaller.invoke with actual MCP client call"
+        }
+    }
+}
