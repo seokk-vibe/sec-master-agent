@@ -18,7 +18,7 @@ class MCPStrictModel(StrictPopulateByNameModel):
     pass
 
 
-class GetAcctRightsStatusUserInfoIn(MCPStrictModel):
+class MCPUserInfoIn(MCPStrictModel):
     gps_x: Optional[str] = Field(default=None, alias="gpsX")
     gps_y: Optional[str] = Field(default=None, alias="gpsY")
     login_level: Optional[str] = Field(default=None, alias="loginLevel")
@@ -46,10 +46,39 @@ class GetAcctRightsStatusUserInfoIn(MCPStrictModel):
         return str(value)
 
 
-class GetAcctRightsStatusArgumentsIn(MCPStrictModel):
+class MCPUserChipSuggestionIn(MCPStrictModel):
+    suggestion_type: Optional[str] = Field(default=None, alias="suggestionType")
+    source: Optional[str] = None
+    target: Optional[str] = None
+
+    @field_validator("suggestion_type", "source", "target", mode="before")
+    @classmethod
+    def _coerce_to_string(cls, value: object) -> object:
+        if value is None:
+            return None
+        return str(value)
+
+
+class MCPUserChipInputIn(MCPStrictModel):
+    type: Optional[str] = None
+    display_text: Optional[str] = Field(default=None, alias="displayText")
+    value: Optional[str] = None
+    suggestion: Optional[MCPUserChipSuggestionIn] = None
+
+    @field_validator("type", "display_text", "value", mode="before")
+    @classmethod
+    def _coerce_to_string(cls, value: object) -> object:
+        if value is None:
+            return None
+        return str(value)
+
+
+class CommonMCPToolArgumentsIn(MCPStrictModel):
     tool_step_id: str = Field(default="1", alias="toolStepId")
     session_key: str = Field(default="", alias="sessionKey")
-    user_info: GetAcctRightsStatusUserInfoIn = Field(alias="userInfo")
+    user_info: MCPUserInfoIn = Field(alias="userInfo")
+    user_input: Optional[MCPUserChipInputIn] = Field(default=None, alias="userInput")
+    user_chip_input: Optional[MCPUserChipInputIn] = Field(default=None, alias="userChipInput")
 
     @field_validator("tool_step_id", mode="before")
     @classmethod
@@ -66,11 +95,64 @@ class GetAcctRightsStatusArgumentsIn(MCPStrictModel):
         return str(value)
 
 
-class GetUnsettledAmountArgumentsIn(GetAcctRightsStatusArgumentsIn):
-    """
-    if-sec-api-004 기준 요청 인자.
-    현재 문서상 shape가 if-sec-api-003과 동일하여 스키마를 재사용한다.
-    """
+class GetAcctRightsStatusArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetUnsettledAmountArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetCollateralShortageArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetAutoTransferErrorArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetEventStatusArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetTransferFeeCouponArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetImportantNoticeArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetMarketScheduleArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetInvestmentPlusArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetExchangeRateArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetSectorinfoArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetYoutubeArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetBranchFinderArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class GetWeatherArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
+
+
+class CommonChatArgumentsIn(CommonMCPToolArgumentsIn):
+    pass
 
 
 class JsonRpcToolCallParams(MCPStrictModel):

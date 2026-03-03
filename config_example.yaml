@@ -6,8 +6,7 @@ litellm_server_url: ""
 llm_server_url: ""
 llm_model_name: "gpt-4o-mini"
 llm_timeout_seconds: 30.0
-llm_caller_type: "openai"
-openai_api_key: ""
+llm_caller_type: "openai" # openai OR lite_llm
 
 intent_classification_enabled: true
 default_scenario_id: 19

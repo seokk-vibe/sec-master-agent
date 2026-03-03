@@ -65,7 +65,7 @@ def get_mcp_caller() -> MCPCallerProtocol:
     """
     settings = get_settings()
     if settings.mcp_stub_mode:
-        return StubMCPCaller(interface_ready=False, stub_mode=True)
+        return StubMCPCaller(interface_ready=True, stub_mode=True)
     return JsonRpcMCPCaller(
         server_url=settings.mcp_server_url,
         timeout=settings.mcp_timeout_seconds,

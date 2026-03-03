@@ -1,4 +1,64 @@
-# HANDOFF — OpenAI SDK caller 추가 + 레거시 정리
+# HANDOFF — MCP 인터페이스 구현 검토 + 코드 품질 개선
+
+## 작업 요약
+
+Codex가 생성한 MCP request/response API(시나리오 1-19, 15개 툴 어댑터, JSON-RPC 스키마) 전체 코드 검토를 수행했다.
+테스트 22개 전부 통과 확인. 코드 품질 이슈 2건 수정, 로그 개선, config 정리를 완료했다.
+
+## 커밋 이력
+
+| 커밋 | 내용 |
+|------|------|
+| (이번 세션) | MCP 인터페이스 코드 검토 및 품질 개선, config 정리 |
+
+## 변경된 파일
+
+### 수정된 파일
+| 파일 | 변경 내용 |
+|------|-----------|
+| `PB/core/mcp_caller.py` | DRY 리팩토링: 4개 중복 인스턴스 메서드 → 모듈 레벨 함수(`_build_rpc_id`, `_build_arguments`, `_build_request_payload`, `_format_validation_error`)로 추출. StubMCPCaller/JsonRpcMCPCaller 공유 |
+| `PB/dto/mcp_tool_schemas.py` | `MCPUserChipInputIn.type: str` → `Optional[str] = None` (인터페이스 스펙 N 항목 반영) |
+| `PB/core/llm_caller.py` | 에러 로그 개선: `error=%s` → `error=%s: %s` (예외 타입명 포함, 빈 메시지 예외 식별 가능) |
+| `config_example.yaml` | `openai_api_key` 항목 제거 (env var `OPENAI_API_KEY`로만 전달) |
+
+### 신규 파일
+| 파일 | 설명 |
+|------|------|
+| `documents/MCP_interface_V0.8_touch-IF-SEC-API-001~025.md` | 엑셀 → 마크다운 변환된 25개 MCP 인터페이스 설계서 |
+| `scripts/excel_to_markdown.py` | 엑셀 변환 스크립트 |
+
+## Codex 작업 검토 결과 (이번 세션)
+
+### 정상 확인 항목
+- 시나리오 1-19 매핑 정확 (툴 단계형 O 시나리오는 `mcp_tool_name=None`으로 올바르게 제외)
+- `_CommonUserInfoToolAdapterBase` snake/camelCase fallback 로직 정상
+- `MCPResultMetaOut.Field(alias="_meta")` Pydantic v2 처리 정상
+- `StubMCPCaller._with_default_mcp_context`의 `metadata.mcp` fallback — `body.metadata=None` 케이스에서 실제 필요한 경로 (dead code 아님)
+- 테스트 22개 모두 통과
+
+### 수정한 이슈
+1. **DRY 위반** — 4개 메서드가 StubMCPCaller/JsonRpcMCPCaller 양쪽에 완전 중복 → 모듈 함수로 추출
+2. **스펙 불일치** — `MCPUserChipInputIn.type`이 필수(`str`)였지만 인터페이스 문서는 N(옵션) → `Optional[str] = None`
+
+## config 구조 확정
+
+| 프로파일 | 파일 | `llm_caller_type` | API키 |
+|----------|------|-------------------|-------|
+| `ext` | `config_ext.yaml` | `openai` | env `OPENAI_API_KEY` |
+| `dev` | `config_dev.yaml` | `lite_llm` | 내부망 URL |
+| `prd` | `config_prd.yaml` | `litellm` | 내부망 URL |
+
+- `openai_api_key`는 모든 yaml에서 제거 → 환경변수로만 전달
+- 서버 실행: `APP_PROFILE=ext OPENAI_API_KEY=sk-... uvicorn PB.app:app --reload`
+
+## 테스트 결과
+
+- `pytest PB/test/ -v` — 22개 전부 통과
+- ext 프로파일 실제 OpenAI API(gpt-4o-mini) 호출 검증 완료
+
+---
+
+# HANDOFF — OpenAI SDK caller 추가 + 레거시 정리 (이전 세션)
 
 ## 작업 요약
 

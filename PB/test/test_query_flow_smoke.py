@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import contextmanager
 import json
 from pathlib import Path
@@ -17,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from PB.api.dependencies import get_query_orchestrator_service
 from PB.app import app
+from PB.constant.scenarios import get_scenario_spec
 from PB.core.llm_caller import LLMClassifierCaller, OpenAIClassifierCaller, parse_llm_classification_response
 from PB.core.mcp_caller import StubMCPCaller
 from PB.services.intent_classifier import IntentClassifierService
@@ -98,6 +100,73 @@ def test_query_endpoint_scenario2_stub_mode_returns_stubbed_payload() -> None:
     assert data["mcp"]["payload"]["mcp_tool_name"] == "getUnsettledAmountTool"
 
 
+@pytest.mark.parametrize(
+    ("scenario_id", "tool_name"),
+    [
+        (1, "getAcctRightsStatusTool"),
+        (2, "getUnsettledAmountTool"),
+        (3, "getCollateralShortageTool"),
+        (5, "getAutoTransferErrorTool"),
+        (7, "getEventStatusTool"),
+        (8, "getTransferFeeCouponTool"),
+        (10, "getImportantNoticeTool"),
+        (12, "getMarketScheduleTool"),
+        (13, "getInvestmentPlusTool"),
+        (14, "getExchangeRateTool"),
+        (15, "getSectorinfoTool"),
+        (16, "getYoutubeTool"),
+        (17, "getBranchFinderTool"),
+        (18, "getWeatherTool"),
+        (19, "commonChatTool"),
+    ],
+)
+def test_stub_mcp_builds_mock_request_response_for_x_scenarios(
+    scenario_id: int,
+    tool_name: str,
+) -> None:
+    caller = StubMCPCaller(interface_ready=True, stub_mode=True)
+    scenario = get_scenario_spec(scenario_id)
+
+    result = asyncio.run(
+        caller.invoke(
+            scenario=scenario,
+            user_input="목업 응답 테스트",
+            context={"request_id": "req-test"},
+        )
+    )
+
+    assert result.status == "stubbed"
+    assert result.tool_supported is True
+    assert result.mcp_tool_name == tool_name
+    assert result.request_payload is not None
+    assert result.request_payload["method"] == "tools/call"
+    assert result.request_payload["params"]["name"] == tool_name
+    assert result.response is not None
+    assert result.response["result"]["_meta"]["toolName"] == tool_name
+    assert result.structured_content is not None
+    assert result.content
+    assert isinstance(result.content_text_json, dict)
+
+
+def test_stub_mcp_returns_not_supported_for_o_scenario() -> None:
+    caller = StubMCPCaller(interface_ready=True, stub_mode=True)
+    # 시나리오 4 = IF-SEC-API-006 (툴 단계 O, 현재 연동 범위 제외)
+    scenario = get_scenario_spec(4)
+
+    result = asyncio.run(
+        caller.invoke(
+            scenario=scenario,
+            user_input="미수동결 상태 알려줘",
+            context={"request_id": "req-o-scenario"},
+        )
+    )
+
+    assert result.status == "stubbed"
+    assert result.tool_supported is False
+    assert result.request_payload is None
+    assert result.response is None
+
+
 def test_query_endpoint_classifier_model_override_uses_selected_chatgpt_model(monkeypatch) -> None:
     captured: dict = {}
 
@@ -175,8 +244,7 @@ def test_parse_llm_classification_response_fallback_on_invalid() -> None:
     assert fallback_used is True
 
 
-@pytest.mark.asyncio
-async def test_openai_classifier_caller_parses_scenario_id(monkeypatch) -> None:
+def test_openai_classifier_caller_parses_scenario_id(monkeypatch) -> None:
     """OpenAIClassifierCaller가 SDK 응답에서 시나리오 ID를 올바르게 파싱하는지 검증한다."""
     import types
 
@@ -208,5 +276,5 @@ async def test_openai_classifier_caller_parses_scenario_id(monkeypatch) -> None:
         default_scenario_id=19,
     )
 
-    result = await caller.classify_intent("테스트 질문")
+    result = asyncio.run(caller.classify_intent("테스트 질문"))
     assert result == 7

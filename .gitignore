@@ -35,3 +35,10 @@ config_prd.yaml
 # Editor settings
 .vscode/
 .idea/
+
+# Excel files
+*.xlsx
+*.xls
+
+# Interface documents (generated from Excel, not committed)
+documents/*.md

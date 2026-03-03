@@ -201,8 +201,8 @@ class LLMClassifierCaller:
                 )
             except Exception as exc:  # pragma: no cover - 네트워크 예외는 런타임 의존
                 logger.warning(
-                    "[LLMClassifierCaller] 호출 실패 (attempt %d/%d) | error=%s",
-                    attempt + 1, max_attempts, exc,
+                    "[LLMClassifierCaller] 호출 실패 (attempt %d/%d) | error=%s: %s",
+                    attempt + 1, max_attempts, type(exc).__name__, exc,
                 )
                 if attempt >= max_attempts - 1:
                     return IntentClassificationMeta(
@@ -335,8 +335,8 @@ class OpenAIClassifierCaller:
                 )
             except Exception as exc:
                 logger.warning(
-                    "[OpenAIClassifierCaller] 호출 실패 (attempt %d/%d) | error=%s",
-                    attempt + 1, max_attempts, exc,
+                    "[OpenAIClassifierCaller] 호출 실패 (attempt %d/%d) | error=%s: %s",
+                    attempt + 1, max_attempts, type(exc).__name__, exc,
                 )
                 if attempt >= max_attempts - 1:
                     return IntentClassificationMeta(

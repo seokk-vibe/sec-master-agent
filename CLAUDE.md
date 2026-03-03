@@ -64,13 +64,14 @@ POST /api/v1/query
 - **`PB/constant/scenarios.py`** — Registry of 19 `ScenarioSpec` entries; scenario 19 = general chat/fallback
 - **`PB/constant/classification_prompt.py`** — System prompt template for LLM classification
 - **`PB/dto/base.py`** — Six Pydantic base classes (`FrozenStrictModel`, `StrictModel`, `AllowExtraModel`, etc.) with intentional ConfigDict combinations
+- **`PB/dto/mcp_tool_schemas.py`** — MCP request/response Pydantic 스키마: `CommonMCPToolArgumentsIn`, `MCPUserInfoIn`, `MCPUserChipInputIn`, `JsonRpcToolCallRequest/Response`, `MCPInvokeResultOut` 등
 
 ### Adding a New MCP Tool
 
 1. Add a `ScenarioSpec` entry in `PB/constant/scenarios.py` with `mcp_tool_name` set
 2. Create a Pydantic arguments schema in `PB/dto/mcp_tool_schemas.py`
 3. Create an adapter class in `PB/core/mcp_adapters.py` implementing `MCPToolAdapterProtocol`
-4. Register the adapter in the `_default_tool_adapters()` list
+4. Register the adapter in the `build_default_mcp_tool_adapters()` list
 
 ## Configuration
 
@@ -119,7 +120,7 @@ Any setting in the YAML can be overridden by the corresponding environment varia
 | `INTENT_CLASSIFICATION_ENABLED` | `intent_classification_enabled` | `true` | Toggle LLM classification |
 | `DEFAULT_SCENARIO_ID` | `default_scenario_id` | `19` | Fallback scenario (general chat) |
 | `LLM_CALLER_TYPE` | `llm_caller_type` | `"openai"` (ext) / `"litellm"` (dev, prd) | LLM caller implementation (`"litellm"` or `"openai"`) |
-| `OPENAI_API_KEY` | `openai_api_key` | `""` | OpenAI API key (empty → env var `OPENAI_API_KEY` auto-detect) |
+| `OPENAI_API_KEY` | — | `""` | OpenAI API key (yaml에 기록 금지 — 환경변수로만 전달) |
 | `MCP_STUB_MODE` | `mcp_stub_mode` | `true` (dev) / `false` (prd) | Use StubMCPCaller (no real MCP calls) |
 | `MCP_SERVER_URL` | `mcp_server_url` | `""` | MCP JSON-RPC server endpoint |
 | `MCP_TIMEOUT_SECONDS` | `mcp_timeout_seconds` | `10.0` | MCP request timeout |
@@ -135,4 +136,4 @@ Any setting in the YAML can be overridden by the corresponding environment varia
 - Tests use FastAPI `TestClient` with `app.dependency_overrides` to swap the orchestrator
 - External HTTP calls are intercepted by monkeypatching `post_json` at the module level
 - `MCP_STUB_MODE=true` (default in dev) allows the full stack to run without external services
-- Smoke tests cover: stub flow, scenario 2 stub mode, LLM model override, shared parser, and OpenAI caller mock
+- Smoke tests cover: stub flow, scenario 2 stub mode, all 15 X-type tool scenarios, O-type scenario exclusion, LLM model override, shared parser, and OpenAI caller mock (22 tests total)

@@ -24,6 +24,13 @@ def _model_dump_safe(model: Optional[BaseModel]) -> dict:
     return model.model_dump(exclude_none=True)
 
 
+def _extract_mcp_context(metadata: Optional[dict]) -> Optional[dict]:
+    if not isinstance(metadata, dict):
+        return None
+    mcp = metadata.get("mcp")
+    return mcp if isinstance(mcp, dict) else None
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -43,6 +50,7 @@ async def classify_and_route_query(
             "user_id": body.user_id,
             "session_id": body.session_id,
             "metadata": body.metadata,
+            "mcp": _extract_mcp_context(body.metadata),
             "classifier": _model_dump_safe(body.classifier),
         },
     )
